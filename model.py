@@ -23,8 +23,8 @@ def get_testing_products():
     gp_prob = np.concatenate([np.linspace(0, 0.5, n_years), np.linspace(0.5, 0.6, len(years) - n_years)])
 
     # FSW agents who haven't been diagnosed or treated yet
-    def fsw_eligibility(mod):
-        return mod.sim.networks.structuredsexual.fsw & ~mod.sim.diseases.hiv.diagnosed & ~mod.sim.diseases.hiv.on_art
+    def fsw_eligibility(sim):
+        return sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.diagnosed & ~sim.diseases.hiv.on_art
 
     fsw_testing = sti.HIVTest(
         years=years,
@@ -35,8 +35,8 @@ def get_testing_products():
     )
 
     # Non-FSW agents who haven't been diagnosed or treated yet
-    def other_eligibility(mod):
-        return ~mod.sim.networks.structuredsexual.fsw & ~mod.sim.diseases.hiv.diagnosed & ~mod.sim.diseases.hiv.on_art
+    def other_eligibility(sim):
+        return ~sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.diagnosed & ~sim.diseases.hiv.on_art
 
     other_testing = sti.HIVTest(
         years=years,
@@ -47,8 +47,8 @@ def get_testing_products():
     )
 
     # Agents whose CD4 count is below 200.
-    def low_cd4_eligibility(mod):
-        return (mod.sim.diseases.hiv.cd4 < 200) & ~mod.sim.diseases.hiv.diagnosed
+    def low_cd4_eligibility(sim):
+        return (sim.diseases.hiv.cd4 < 200) & ~sim.diseases.hiv.diagnosed
 
     low_cd4_testing = sti.HIVTest(
         years=years,
@@ -93,66 +93,80 @@ def make_hiv_intvs():
     return interventions
 
 
-def make_sim_components(n_agents=5e3, start=1990, stop=2030, dt=1/12, verbose=1/12, seed=1):
+def make_sim_pars(sim, calib_pars):
+    """
+    Update the simulation parameters with the calibration parameters
+    """
+    def set_par(sim=None, fullparname=None, new_val=None):
+        modtype, module, parname = split_par(fullparname)
+        if sim.initialized:
+            sim[modtype][module].pars[parname] = new_val
+        else:
+            idx = [d.name for d in sim.pars[modtype]].index(module)
+            sim.pars[modtype][idx].pars[parname] = new_val
+        return
 
-    total_pop = {1970: 5.203e6, 1980: 7.05e6, 1985: 8.691e6, 1990: 9980999, 2000: 11.83e6}[start]
-    sim_args = dict(total_pop=total_pop, start=start, stop=stop, dt=dt, verbose=verbose, rand_seed=seed)
+    def split_par(fullparname):
+        """ Remove disease_ prefix """
+        modname = fullparname.split('_')[0]
+        if 'hiv' in fullparname:
+            modtype = 'diseases'
+        elif 'nw' in fullparname:
+            modtype = 'networks'
+        else:
+            raise NotImplementedError(f'Parameter {fullparname} not recognized')
+        parname = fullparname[fullparname.find('_')+1:]
+        return modtype, modname, parname
 
-    ####################################################################################################################
-    # Demographic modules
-    ####################################################################################################################
-    fertility_data = pd.read_csv(f'data/asfr.csv')
-    pregnancy = ss.Pregnancy(fertility_rate=fertility_data)
-    death_data = pd.read_csv(f'data/deaths.csv')
-    death = ss.Deaths(death_rate=death_data, rate_units=1)
-    demographics = [pregnancy, death]
+    # Loop over the calibration parameters
+    for fullparname, pars in calib_pars.items():
 
-    ####################################################################################################################
-    # People and networks
-    ####################################################################################################################
-    ppl = ss.People(n_agents, age_data=pd.read_csv(f'data/age_dist_{start}.csv', index_col='age')['value'])
-    sexual = sti.FastStructuredSexual(
-        prop_f0=0.8,
-        prop_f2=0.05,
-        prop_m0=0.65,
-        f1_conc=0.05,
-        f2_conc=0.25,
-        m1_conc=0.15,
-        m2_conc=0.3,
-        p_pair_form=0.6,  # 0.6,
-        condom_data=pd.read_csv(f'data/condom_use.csv'),
-    )
-    maternal = ss.MaternalNet(unit='month')
-    networks = [sexual, maternal]
+        if isinstance(pars, dict):
+            v = pars['value']
+        elif sc.isnumber(pars):
+            v = pars
+        else:
+            raise NotImplementedError(f'Parameter {fullparname} not recognized')
 
-    ####################################################################################################################
-    # Diseases
-    ####################################################################################################################
-    hiv = make_hiv()
-    diseases = [hiv]
-
-    ####################################################################################################################
-    # Interventions and analyzers
-    ####################################################################################################################
-    intvs = make_hiv_intvs()
-
-    return sim_args, demographics, ppl, networks, diseases, intvs
-
-
-def make_hiv_sim(start=1990, stop=2030, seed=1):
-    """ Make the HIV sim """
-    sim_args, demographics, ppl, networks, diseases, intvs = make_sim_components(start=start, stop=stop, seed=seed)
-    sim = ss.Sim(
-        **sim_args,  # Unpack the arguments for the sim
-        people=ppl,
-        diseases=diseases,
-        networks=networks,
-        demographics=demographics,
-        interventions=intvs,
-        analyzers=[],
-    )
+        if fullparname in ['index', 'mismatch']:
+            continue
+        else:
+            try:
+                set_par(sim=sim, fullparname=fullparname, new_val=v)
+            except:
+                raise NotImplementedError(f'Parameter {k} not recognized')
 
     return sim
+
+
+def make_hiv_sim(start=1990, stop=2030, seed=1, use_calib=False, calib_folder=None, par_idx=0):
+    """ Make the HIV sim """
+
+    hiv = make_hiv()
+    diseases = [hiv]
+    intvs = make_hiv_intvs()
+
+    sim_args = dict(start=start, stop=stop, rand_seed=seed, n_agents=5e3, use_migration=True, rel_death=0.8)
+    sim = sti.Sim(
+        **sim_args,  # Unpack the arguments for the sim
+        diseases=diseases,
+        demographics='zimbabwe',
+        datafolder='data/',
+        interventions=intvs,
+    )
+
+    # If using calibration parameters, update the simulation
+    if use_calib:
+        if calib_folder is None:
+            calib_folder = 'results'
+        pars_df = sc.loadobj(f'{calib_folder}/zim_hiv_pars.df')
+        calib_pars = pars_df.iloc[par_idx].to_dict()
+        sim.init()
+        sim = make_sim_pars(sim, calib_pars)
+        print(f'Using calibration parameters for scenario {scenario} and index {par_idx}')
+
+    return sim
+
 
 
 if __name__ == '__main__':
@@ -163,7 +177,7 @@ if __name__ == '__main__':
     do_save = True
 
     if do_run:
-        sim = make_hiv_sim(seed=seed, start=1990, stop=2030)
+        sim = make_hiv_sim(seed=seed, start=1990, stop=2030, use_calib=False)
         sim.run()
         df = sim.to_df(resample='year', use_years=True, sep='.')  # Use dots to separate columns
         if do_save: sc.saveobj(f'results/hiv_sim.df', df)
