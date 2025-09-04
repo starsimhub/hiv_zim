@@ -99,11 +99,17 @@ def make_sim_pars(sim, calib_pars):
     """
     def set_par(sim=None, fullparname=None, new_val=None):
         modtype, module, parname = split_par(fullparname)
+        if module == 'nw': module = 'structuredsexual'
         if sim.initialized:
-            sim[modtype][module].pars[parname] = new_val
+            sim[modtype][module].pars.update({parname: new_val})
         else:
-            idx = [d.name for d in sim.pars[modtype]].index(module)
-            sim.pars[modtype][idx].pars[parname] = new_val
+            # Uninitialized sim
+            if module == 'structuredsexual':
+                pars = sim.nw_pars
+            elif module == 'hiv':
+                idx = [d.name for d in sim.pars[modtype]].index(module)
+                pars = sim.pars[modtype][idx].pars
+            pars.update({parname: new_val})
         return
 
     def split_par(fullparname):
