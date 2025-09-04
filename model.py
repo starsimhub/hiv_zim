@@ -134,7 +134,7 @@ def make_sim_pars(sim, calib_pars):
             try:
                 set_par(sim=sim, fullparname=fullparname, new_val=v)
             except:
-                raise NotImplementedError(f'Parameter {k} not recognized')
+                raise NotImplementedError(f'Parameter {fullparname} not recognized')
 
     return sim
 
