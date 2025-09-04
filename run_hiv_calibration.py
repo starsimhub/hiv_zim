@@ -59,9 +59,9 @@ def make_calibration(n_trials=None, n_workers=None):
     return sim, calib
 
 
-def run_calibration(calib, do_save=False):
+def run_calibration(calib, n_trials=None, do_save=False):
     # Run the calibration
-    printstr = f'Running calibration, {calib.n_trials} trials'
+    printstr = f'Running calibration, {n_trials} trials'
     sc.heading(printstr)
     calib.calibrate()
     if do_save: sc.saveobj(f'results/zim_hiv_calib.obj', calib)
@@ -91,7 +91,7 @@ if __name__ == '__main__':
             calib.remove_db()
 
     else:
-        calib = run_calibration(calib)
+        calib = run_calibration(calib, n_trials=n_trials, do_save=False)
 
     print(f'... finished calibration!')
     print(f'Best pars are {calib.best_pars}')
