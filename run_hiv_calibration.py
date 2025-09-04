@@ -41,7 +41,7 @@ def make_calibration(n_trials=None, n_workers=None):
     )
 
     # Make the sim
-    sim = make_hiv_sim()
+    sim = make_hiv_sim(verbose=-1)
     data = pd.read_csv('data/zimbabwe_calib_data.csv')
     extra_results = ['hiv.n_diagnosed', 'hiv.n_on_art', 'n_alive']
 

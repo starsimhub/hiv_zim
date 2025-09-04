@@ -145,14 +145,14 @@ def make_sim_pars(sim, calib_pars):
     return sim
 
 
-def make_hiv_sim(start=1990, stop=2030, seed=1, use_calib=False, calib_folder=None, par_idx=0):
+def make_hiv_sim(start=1990, stop=2030, seed=1, use_calib=False, calib_folder=None, par_idx=0, verbose=1/12):
     """ Make the HIV sim """
 
     hiv = make_hiv()
     diseases = [hiv]
     intvs = make_hiv_intvs()
 
-    sim_args = dict(start=start, stop=stop, rand_seed=seed, n_agents=5e3, use_migration=True, rel_death=0.8)
+    sim_args = dict(verbose=verbose, start=start, stop=stop, rand_seed=seed, n_agents=5e3, use_migration=True, rel_death=0.8)
     sim = sti.Sim(
         **sim_args,  # Unpack the arguments for the sim
         diseases=diseases,
