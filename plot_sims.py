@@ -95,15 +95,21 @@ def plot_hiv_sims(df, start_year=2000, end_year=2025, which='single', percentile
     # Population size
     ax = axes[pn]
     ax.scatter(hiv_data.year, hiv_data['n_alive'], color='k', label='UNAIDS')
-    y0 = dfplot['n_alive']
-    ax.plot(x, y0, label='Modeled')
+    y = get_y(dfplot, which, 'n_alive')
+    # y0 = dfplot['n_alive']['median']
+    ax.plot(x, y, label='Modeled')
+    if which == 'multi':
+        for idx, percentile_pair in enumerate(percentile_pairs):
+            yl = dfplot[(resname, f"{percentile_pair[0]:.0%}")]
+            yu = dfplot[(resname, f"{percentile_pair[1]:.0%}")]
+            ax.fill_between(x, yl, yu, alpha=alphas[idx], facecolor=line.get_color())
     ax.set_title('Population size')
     ax.legend(frameon=False)
     sc.SIticks(ax)
     ax.set_ylim(bottom=0)
     pn += 1
 
-    sc.figlayout()
+    pl.tight_layout()
     sc.savefig("figures/" + title + str(start_year) + "_" + which + ".png", dpi=100)
 
     return fig
