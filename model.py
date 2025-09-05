@@ -64,10 +64,10 @@ def get_testing_products():
 def make_hiv():
     """ Make HIV arguments for sim"""
     hiv = sti.HIV(
-        beta_m2f=0.035,
-        eff_condom=0.95,
+        beta_m2f=0.04,
+        eff_condom=0.85,
         init_prev_data=pd.read_csv('data/init_prev_hiv.csv'),
-        rel_init_prev=1.,
+        rel_init_prev=8.,
     )
     return hiv
 
@@ -152,9 +152,10 @@ def make_hiv_sim(start=1990, stop=2030, seed=1, use_calib=False, calib_folder=No
     diseases = [hiv]
     intvs = make_hiv_intvs()
 
-    sim_args = dict(verbose=verbose, start=start, stop=stop, rand_seed=seed, n_agents=10e3, use_migration=True, rel_death=0.8)
+    sim_args = dict(verbose=verbose, start=start, stop=stop, rand_seed=seed, n_agents=10e3, use_migration=True, rel_death=0.99)
     sim = sti.Sim(
         **sim_args,  # Unpack the arguments for the sim
+        nw_pars=dict(condom_data=pd.read_csv('data/condom_use.csv')),
         diseases=diseases,
         demographics='zimbabwe',
         datafolder='data/',
@@ -169,7 +170,7 @@ def make_hiv_sim(start=1990, stop=2030, seed=1, use_calib=False, calib_folder=No
         calib_pars = pars_df.iloc[par_idx].to_dict()
         sim.init()
         sim = make_sim_pars(sim, calib_pars)
-        print(f'Using calibration parameters for scenario {scenario} and index {par_idx}')
+        print(f'Using calibration parameters for index {par_idx}')
 
     return sim
 
@@ -187,10 +188,10 @@ if __name__ == '__main__':
         df = sim.to_df(resample='year', use_years=True, sep='.')  # Use dots to separate columns
         if do_save: sc.saveobj(f'results/hiv_sim.df', df)
 
-        # Process and plot
-        from plot_sims import plot_hiv_sims
-        df = sc.loadobj(f'results/hiv_sim.df')
-        plot_hiv_sims(df, start_year=1990, end_year=2030, which='single')
+    # Process and plot
+    from plot_sims import plot_hiv_sims
+    df = sc.loadobj(f'results/hiv_sim.df')
+    plot_hiv_sims(df, start_year=1990, end_year=2030, which='single')
 
     print('Done.')
 

@@ -20,7 +20,7 @@ from model import make_hiv_sim, make_sim_pars
 
 # Run settings
 debug = False  # If True, this will do smaller runs that can be run locally for debugging
-n_trials = [3000, 2][debug]  # How many trials to run for calibration
+n_trials = [1500, 2][debug]  # How many trials to run for calibration
 n_workers = [50, 1][debug]    # How many cores to use
 # storage = ["mysql://hpvsim_user@localhost/hpvsim_db", None][debug]  # Storage for calibrations
 storage = None
@@ -32,7 +32,7 @@ def make_calibration(n_trials=None, n_workers=None):
 
     # Define the calibration parameters
     calib_pars = dict(
-        hiv_rel_init_prev=dict(low=1, high=5.0, guess=2.0),
+        # hiv_rel_init_prev=dict(low=1, high=5.0, guess=2.0),
         hiv_beta_m2f=dict(low=0.01, high=0.10, guess=0.05),
         nw_prop_f0 = dict(low=0.55, high=0.9, guess=0.85),
         nw_prop_m0 = dict(low=0.50, high=0.9, guess=0.81),
