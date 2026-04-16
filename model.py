@@ -58,7 +58,20 @@ def get_testing_products():
         label='low_cd4_testing',
     )
 
-    return fsw_testing, other_testing, low_cd4_testing
+    # ANC testing: test undiagnosed pregnant women in first trimester
+    def anc_eligibility(mod):
+        tri1 = mod.sim.demographics.pregnancy.tri1_uids
+        return tri1[~mod.sim.diseases.hiv.diagnosed[tri1]]
+
+    anc_testing = sti.HIVTest(
+        test_prob_data=0.9,
+        dt_scale=False,
+        name='anc_testing',
+        eligibility=anc_eligibility,
+        label='anc_testing',
+    )
+
+    return fsw_testing, other_testing, low_cd4_testing, anc_testing
 
 
 def make_hiv():
@@ -76,7 +89,7 @@ def make_hiv_intvs():
 
     n_art = pd.read_csv(f'data/n_art.csv').set_index('year')
     n_vmmc = pd.read_csv(f'data/n_vmmc.csv').set_index('year')
-    fsw_testing, other_testing, low_cd4_testing = get_testing_products()
+    fsw_testing, other_testing, low_cd4_testing, anc_testing = get_testing_products()
     art = sti.ART(coverage_data=n_art)
     vmmc = sti.VMMC(coverage_data=n_vmmc)
     prep = sti.Prep()
@@ -85,6 +98,7 @@ def make_hiv_intvs():
         fsw_testing,
         other_testing,
         low_cd4_testing,
+        anc_testing,
         art,
         vmmc,
         prep,
